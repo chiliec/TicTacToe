@@ -33,6 +33,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D15E5F792ED9A3B5003F995B /* game */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = game; sourceTree = "<group>"; };
+		D15E5F862ED9D9F9003F995B /* network */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = network; sourceTree = "<group>"; };
 		D1CFC9592ED979C5005EE73A /* models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = models; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -55,6 +56,7 @@
 				D1CFC95F2ED97AB5005EE73A /* TicTacToeModule.swift */,
 				D15E5F792ED9A3B5003F995B /* game */,
 				D1CFC9592ED979C5005EE73A /* models */,
+				D15E5F862ED9D9F9003F995B /* network */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -132,6 +134,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				D15E5F792ED9A3B5003F995B /* game */,
+				D15E5F862ED9D9F9003F995B /* network */,
 				D1CFC9592ED979C5005EE73A /* models */,
 			);
 			name = TicTacToe;

@@ -22,7 +22,7 @@ class TicTacToeModule: RCTEventEmitter {
   }
   
   override func supportedEvents() -> [String]! {
-    return ["requestName", "submitResult", "localSave"]
+    return ["submitResult"]
   }
   
   func sendEvent(name: String, body: Any?) {
@@ -49,16 +49,28 @@ class TicTacToeModule: RCTEventEmitter {
   }
   
   @objc func getStats(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
-    resolve(["wins": TicTacToeGame.shared.wins, "fails": TicTacToeGame.shared.fails])
+    let stats = TicTacToeGame.shared.getUserStats()
+    resolve(stats)
   }
   
-  @objc func submitName(_ name: NSString, duration: NSNumber) {
+  @objc func getCurrentUserName(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
+    resolve(TicTacToeGame.shared.currentUserName)
+  }
+  
+  @objc func setUserName(_ name: NSString) {
+      TicTacToeGame.shared.setUserName(name as String)
+  }
+  
+  @objc func submitGame(_ duration: NSNumber, winner: NSNumber) {
     Task {
-      await TicTacToeGame.shared.submitNameAndSend(name as String, duration: duration.intValue)
+      guard let winnerPlayer = TicTacToePlayer(rawValue: winner.intValue) else {
+        return
+      }
+      await TicTacToeGame.shared.submitGame(duration: duration.intValue, winner: winnerPlayer)
     }
   }
   
-  @objc func fetchRating(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) async {
+  @objc func fetchRating(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     Task {
       let data = await TicTacToeGame.shared.fetchRating()
       resolve(data)
