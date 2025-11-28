@@ -24,8 +24,9 @@ export default function GameScreen() {
     })
 
     RNBridge.addListener('submitResult', (r: any) => {
-      if (r.status === 'ok') Alert.alert('Sent', 'Score sent')
-      else Alert.alert('Network', 'Failed to send score saved locally')
+      console.info('Submit result', r)
+      // if (r.status === 'ok') Alert.alert('Sent', 'Score sent')
+      // else Alert.alert('Network', 'Failed to send score saved locally')
     })
 
     RNBridge.getStats().then((s: any) => {

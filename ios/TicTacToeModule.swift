@@ -36,7 +36,8 @@ class TicTacToeModule: RCTEventEmitter {
   }
   
   @objc func getBoard(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
-    resolve(TicTacToeGame.shared.getBoard())
+    let boardValues = TicTacToeGame.shared.getBoard().map { $0.rawValue }
+    resolve(boardValues)
   }
   
   @objc func playerMove(_ index: NSNumber, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
