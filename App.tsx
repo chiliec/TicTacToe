@@ -1,45 +1,29 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
+// import { SafeAreaView } from 'react-native-safe-area-context';
+import GameScreen from './src/GameScreen'
+import RatingScreen from './src/RatingScreen'
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
-
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+export default function App() {
+  const [tab, setTab] = useState<'game'|'rating'>('game')
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
+    <SafeAreaView style={styles.main}>
+      <View style={styles.tabs}>
+        <TouchableOpacity onPress={() => setTab('game')} style={styles.tabButton}>
+          <Text>🎮 Game</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setTab('rating')} style={styles.tabButton}>
+          <Text>🏆 Rating</Text>
+        </TouchableOpacity>
+      </View>
+      {tab === 'game' ? <GameScreen /> : <RatingScreen />}
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-
-export default App;
+  main: { flex: 1 },
+  tabs: { flexDirection: 'row', justifyContent: 'space-around', padding: 12 },
+  tabButton: { padding: 8 }
+})
