@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SwiftData
 
 enum TicTacToePlayer: Int {
   case None = 0
@@ -53,10 +52,14 @@ final class TicTacToeGameEngine {
   }
   
   func aiMove() -> Int? {
-    // Naive AI: pick random empty cell
     let empties = board.enumerated().filter { $0.element == .None }.map { $0.offset }
     guard !empties.isEmpty else { return nil }
-    let pick = empties.randomElement()!
+    let pick: Int
+    if (empties.contains(4)) {
+      pick = 4
+    } else {
+      pick = empties.randomElement()!
+    }
     board[pick] = .AI
     return pick
   }
