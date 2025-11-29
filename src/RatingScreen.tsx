@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -14,66 +14,77 @@ export default function RatingScreen() {
   const [data, setData] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setRefreshing(true)
     try {
       const d = await RNBridge.fetchRating()
       setData(d || [])
-    } catch (e: any) {
+    } catch (e) {
       console.warn('Failed to load rating', e)
       setData([])
     } finally {
       setRefreshing(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     load()
-  }, [])
+  }, [load])
+
+  const renderItem = useCallback(({ item, index }: any) => (
+    <RatingRow item={item} index={index} />
+  ), [])
 
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
         data={data}
-        keyExtractor={(item, idx) => item.name + idx}
+        keyExtractor={(item, idx) => `${item.name}-${idx}`}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
-        renderItem={({ item, index }) => (
-          <View style={styles.row}>
-            <View style={styles.medal}>
-              <Text style={styles.rank}>
-                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-              </Text>
-            </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.name}>{item.name}</Text>
-              <View style={styles.stats}>
-                <Text style={styles.stat}>
-                  🔥 {item.maxStreak} streak
-                </Text>
-                <Text style={styles.stat}>
-                  ⏱️ {formatDuration(item.totalDuration)}
-                </Text>
-              </View>
-              <View style={styles.stats}>
-                <Text style={styles.stat}>
-                  {item.wins}W - {item.losses}L
-                </Text>
-                <Text style={[styles.stat, styles.ratio]}>
-                  {(item.ratio * 100).toFixed(0)}%
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No games yet</Text>
-          </View>
-        }
+        renderItem={renderItem}
+        ListEmptyComponent={<EmptyState />}
       />
     </SafeAreaView>
   )
 }
+
+const RatingRow = React.memo(({ item, index }: any) => {
+  const getMedal = (idx: number) => {
+    const medals = ['🥇', '🥈', '🥉']
+    return medals[idx] ?? `#${idx + 1}`
+  }
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.medal}>
+        <Text style={styles.rank}>{getMedal(index)}</Text>
+      </View>
+      <View style={styles.userInfo}>
+        <Text style={styles.name}>{item.name}</Text>
+        <View style={styles.stats}>
+          <Text style={styles.stat}>🔥 {item.maxStreak} streak</Text>
+          <Text style={styles.stat}>⏱️ {formatDuration(item.totalDuration)}</Text>
+        </View>
+        <View style={styles.stats}>
+          <Text style={styles.stat}>
+            {item.wins}W - {item.losses}L
+          </Text>
+          <Text style={[styles.stat, styles.ratio]}>
+            {(item.ratio * 100).toFixed(0)}%
+          </Text>
+        </View>
+      </View>
+    </View>
+  )
+})
+RatingRow.displayName = 'RatingRow'
+
+const EmptyState = React.memo(() => (
+  <View style={styles.empty}>
+    <Text style={styles.emptyText}>No games yet</Text>
+  </View>
+))
+EmptyState.displayName = 'EmptyState'
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },

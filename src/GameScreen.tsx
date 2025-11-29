@@ -1,14 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react'
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  Animated,
-  Modal,
-  TextInput,
-} from 'react-native'
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Modal, TextInput } from 'react-native'
 import RNBridge from '../RNBridge'
 import { formatTime } from './helpers/time'
 
@@ -21,6 +12,11 @@ export default function GameScreen({ userName, onUserNameChange }: any) {
   const [nameModalVisible, setNameModalVisible] = useState(false)
   const [tempName, setTempName] = useState(userName)
 
+  // Format time only when elapsed changes
+  const formattedTime = useMemo(() => formatTime(elapsed), [elapsed])
+
+  const [, setIsResetting] = useState(false)
+
   useEffect(() => {
     if (!startTs) return
     const timer = setInterval(() => {
@@ -29,12 +25,31 @@ export default function GameScreen({ userName, onUserNameChange }: any) {
     return () => clearInterval(timer)
   }, [startTs])
 
-  useEffect(() => {
+  const initializeGame = useCallback(async () => {
     RNBridge.startNewGame()
-    RNBridge.getBoard().then((b: any) => setBoard(b))
+    const b = await RNBridge.getBoard()
+    setBoard(b)
   }, [])
 
-  async function onCellPress(i: number) {
+  const resetGame = useCallback(async () => {
+    setIsResetting(true)
+    fadeAnim.setValue(0)
+    setGameResult(null)
+    setStartTs(null)
+    setElapsed(0)
+
+    RNBridge.startNewGame()
+    const newBoard = await RNBridge.getBoard()
+    setBoard(newBoard)
+    setIsResetting(false)
+  }, [fadeAnim])
+
+
+  useEffect(() => {
+    initializeGame()
+  }, [initializeGame])
+
+  const onCellPress = useCallback(async (i: number) => {
     if (!startTs) setStartTs(Date.now())
     const res = await RNBridge.playerMove(i)
     if (res.ok) {
@@ -47,13 +62,8 @@ export default function GameScreen({ userName, onUserNameChange }: any) {
 
         fadeAnim.setValue(0)
 
-        if (res.winner === 1) {
-          setGameResult('win')
-        } else if (res.winner === 2) {
-          setGameResult('lose')
-        } else if (res.winner === 0) {
-          setGameResult('draw')
-        }
+        const resultMap: Record<number, string> = { 1: 'win', 2: 'lose', 0: 'draw' }
+        setGameResult(resultMap[res.winner] || 'draw')
 
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -61,17 +71,17 @@ export default function GameScreen({ userName, onUserNameChange }: any) {
           useNativeDriver: false,
         }).start()
 
-        setTimeout(() => {
-          setGameResult(null)
-          fadeAnim.setValue(0)
-          RNBridge.startNewGame()
-          RNBridge.getBoard().then((b: any) => setBoard(b))
-          setStartTs(null)
-          setElapsed(0)
-        }, 3000)
+        setTimeout(() => resetGame(), 3000)
       }
     }
-  }
+  }, [startTs, fadeAnim, resetGame])
+
+  const onSaveName = useCallback(() => {
+    const newName = tempName || 'Guest'
+    RNBridge.setUserName(newName)
+    onUserNameChange(newName)
+    setNameModalVisible(false)
+  }, [tempName, onUserNameChange])
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,77 +89,103 @@ export default function GameScreen({ userName, onUserNameChange }: any) {
         <TouchableOpacity onPress={() => setNameModalVisible(true)}>
           <Text style={styles.nameButton}>{userName}</Text>
         </TouchableOpacity>
-        <Text style={styles.timer}>{formatTime(elapsed)}</Text>
+        <Text style={styles.timer}>{formattedTime}</Text>
       </View>
 
       <View style={styles.grid}>
         {board.map((c, i) => (
-          <TouchableOpacity
-            key={i}
-            style={styles.cell}
-            onPress={() => onCellPress(i)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.cellText}>
-              {c === 1 ? '❌' : c === 2 ? '⭕' : ''}
-            </Text>
-          </TouchableOpacity>
+          <Cell key={i} value={c} onPress={() => onCellPress(i)} />
         ))}
       </View>
 
       {gameResult && (
-        <Animated.View
-          style={[
-            styles.overlay,
-            { opacity: fadeAnim, backgroundColor: fadeAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.5)'],
-            })}
-          ]}
-        >
-          <Text style={styles.overlayText}>
-            {gameResult === 'win' && "You Win! 🎉"}
-            {gameResult === 'lose' && "You Lost! 😢"}
-            {gameResult === 'draw' && "It's a Draw! 🤝"}
-          </Text>
-        </Animated.View>
+        <GameResultOverlay result={gameResult} fadeAnim={fadeAnim} />
       )}
 
-      <Modal visible={nameModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Your Name</Text>
-            <TextInput
-              style={styles.nameInput}
-              placeholder="Enter your name"
-              value={tempName}
-              onChangeText={setTempName}
-              maxLength={30}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setNameModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={() => {
-                  RNBridge.setUserName(tempName || 'Guest')
-                  onUserNameChange(tempName || 'Guest')
-                  setNameModalVisible(false)
-                }}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <NameModal
+        visible={nameModalVisible}
+        userName={tempName}
+        onNameChange={setTempName}
+        onSave={onSaveName}
+        onCancel={() => setNameModalVisible(false)}
+      />
     </SafeAreaView>
   )
 }
+
+// Extract Cell component
+const Cell = React.memo(({ value, onPress }: any) => (
+  <TouchableOpacity
+    style={styles.cell}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
+    <Text style={styles.cellText}>
+      {value === 1 ? '❌' : value === 2 ? '⭕' : ''}
+    </Text>
+  </TouchableOpacity>
+))
+Cell.displayName = 'Cell'
+
+const GameResultOverlay = React.memo(({ result, fadeAnim }: any) => {
+  const resultMessages = {
+    win: "You Win! 🎉",
+    lose: "You Lost! 😢",
+    draw: "It's a Draw! 🤝"
+  }
+
+  return (
+    <Animated.View
+      style={[
+        styles.overlay,
+        {
+          opacity: fadeAnim,
+          backgroundColor: fadeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.5)'],
+          })
+        }
+      ]}
+    >
+      <Text style={styles.overlayText}>
+        {resultMessages[result as keyof typeof resultMessages] || resultMessages.draw}
+      </Text>
+    </Animated.View>
+  )
+})
+GameResultOverlay.displayName = 'GameResultOverlay'
+
+const NameModal = React.memo(({ visible, userName, onNameChange, onSave, onCancel }: any) => (
+  <Modal visible={visible} transparent animationType="slide">
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Edit Your Name</Text>
+        <TextInput
+          style={styles.nameInput}
+          placeholder="Enter your name"
+          value={userName}
+          onChangeText={onNameChange}
+          maxLength={30}
+        />
+        <View style={styles.modalButtons}>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.cancelButton]}
+            onPress={onCancel}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.saveButton]}
+            onPress={onSave}
+          >
+            <Text style={styles.saveButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+))
+NameModal.displayName = 'NameModal'
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa', padding: 16 },
