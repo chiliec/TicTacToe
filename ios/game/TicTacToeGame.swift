@@ -27,7 +27,7 @@ final class TicTacToeGame {
   
   private var startDate: Date?
   
-  init(engine: TicTacToeGameEngine = TicTacToeGameEngine(),
+  init(engine: TicTacToeGameEngine = TicTacToeGameEngine(aiMode: AIMode.hard),
        repository: GameRepository = GameRepository()) {
     self.engine = engine
     self.repository = repository
