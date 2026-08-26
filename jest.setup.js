@@ -1,3 +1,4 @@
+/* eslint-env jest */
 /**
  * RNBridge.ts pulls a custom native module (TicTacToeModule) off NativeModules
  * and passes it straight into `new NativeEventEmitter(...)`, which throws under
